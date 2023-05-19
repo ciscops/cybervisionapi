@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Cisco Cyber Vision API</title>
+</head>
+
+<body>
+    <h1>Cisco Cyber Vision API</h1>
+
+    <form method="GET">
+        {% csrf_token %}
+        <label for="token">Enter access token:</label>
+        <input id="token" name="token"></input><br>
+        <label for="ip">Enter IP address:</label>
+        <input id="ip" name="ip"></input><br>
+        <button type="submit">Get Inventory</button>
+    </form>
+</body>
+
+</html>
