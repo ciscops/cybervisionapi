@@ -1,0 +1,47 @@
+body {
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+h1 {
+    color: 	#0489ba;
+}
+
+h3 {
+    color: #0499d0;
+}
+
+table {
+    border-collapse: collapse;
+  }
+
+table, th, td {
+    border: 1px solid;
+}
+
+.col1 {
+    width: 10%;
+}
+
+.col2 {
+    width: 20%;
+}
+
+.col3 {
+    width: 70%;
+}
+
+.col4 {
+    width: 10%;
+}
+
+.col5 {
+    width: 15%;
+}
+
+.col6 {
+    width: 10%;
+}
+
+.col7 {
+    width: 65%;
+}
