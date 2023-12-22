@@ -197,8 +197,10 @@ def get_creds_and_vars(center_token, center_ip):
     for component in component_data[1]:
         for cred in component_data[1][component]:
             sheet2.write(index, 0, component)
-            sheet2.write(index, 1, cred['username'])
-            sheet2.write(index, 2, cred['password'])
+            if 'username' in cred:
+                sheet2.write(index, 1, cred['username'])
+            if 'password' in cred:
+                sheet2.write(index, 2, cred['password'])
             index += 1
             lastIndex = index
 
