@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from requests import get
 
 center_port = 443
 center_base_url = "api/3.0"
@@ -11,6 +12,8 @@ center_base_url = "api/3.0"
 def get(center_token, center_ip):
     try:
         headers = { "x-token-id": center_token }
+        print("Fetching preset id data...")
+
         r_get = requests.get(f"https://{center_ip}:{center_port}/{center_base_url}/presets",headers=headers,verify=False)
         r_get.raise_for_status() #if there are any request errors
 
@@ -23,20 +26,38 @@ def get(center_token, center_ip):
             if preset['label'] == "All data":
                 id = preset['id']
 
+        print("Fetching DNS data...")
+
         r_get = requests.get(f"https://{center_ip}:{center_port}/{center_base_url}/presets/{id}/visualisations/dashboard-security/dns/list",headers=headers,verify=False)
         r_get.raise_for_status() #if there are any request errors
 
         dns = r_get.json()
+
+        print("" + str(len(dns)) + " DNS requests found")
+
+        print("Fetching HTTP data...")
 
         r_get = requests.get(f"https://{center_ip}:{center_port}/{center_base_url}/presets/{id}/visualisations/dashboard-security/http/list",headers=headers,verify=False)
         r_get.raise_for_status() #if there are any request errors
 
         http = r_get.json()
 
+        for request in http:
+            loc = get(f'https://ipapi.co/{request["label"]}/json/')
+            request["name"] = loc["org"]
+
+        print("" + str(len(http)) + " HTTP requests found")
+
+        print("Fetching SMB data...")
+
         r_get = requests.get(f"https://{center_ip}:{center_port}/{center_base_url}/presets/{id}/visualisations/dashboard-security/smb/list",headers=headers,verify=False)
         r_get.raise_for_status() #if there are any request errors
 
         smb = r_get.json()
+
+        print("" + str(len(smb)) + " Server Message Block (SMB) Trees found")
+
+        print("Checking Cyber Vision version...")
 
         r_get = requests.get(f"https://{center_ip}:{center_port}/{center_base_url}/version",headers=headers,verify=False)
         r_get.raise_for_status() #if there are any request errors
@@ -46,15 +67,22 @@ def get(center_token, center_ip):
         external = {"devices": [], "components": []}
 
         if version["major"] == 4 and version["minor"] == 3:
+            print("Version is at least 4.3.x")
+            print("Fetching device ids...")
+
             r_get = requests.get(f"https://{center_ip}:{center_port}/{center_base_url}/devices",headers=headers,verify=False)
             r_get.raise_for_status() #if there are any request errors
 
             devices = r_get.json()
 
+            print("Fetching component ids...")
+
             r_get = requests.get(f"https://{center_ip}:{center_port}/{center_base_url}/components",headers=headers,verify=False)
             r_get.raise_for_status() #if there are any request errors
 
             components = r_get.json()
+
+            print("Fetching external communications for devices...")
             
             for device in devices:
                 if device["externalCommunicationsCount"] > 0:
@@ -72,6 +100,8 @@ def get(center_token, center_ip):
                         device_data['volume'] += activity['sentByDevice']
 
                     external['devices'].append(device_data)
+
+            print("Fetching external communications for components...")
 
             for component in components:               
                  if component["externalCommunicationsCount"] > 0:
@@ -99,6 +129,8 @@ def get_security_insights(center_token, center_ip):
 
     data = get(center_token, center_ip)
 
+    print("Finished fetching API data")
+
     now = datetime.now()
 
     current_time = now.strftime("%m-%d-%Y_%H-%M-%S")
@@ -106,6 +138,9 @@ def get_security_insights(center_token, center_ip):
     file_name = "Cyber Vision Security Insights_" + current_time + ".xlsx"
 
     workbook = xlsxwriter.Workbook(file_name)
+
+    print("Writing DNS data to Excel")
+
     sheet1 = workbook.add_worksheet("DNS")
 
     sheet1.write(0, 0, 'DNS')
@@ -119,18 +154,24 @@ def get_security_insights(center_token, center_ip):
         sheet1.write(index, 2, dns['componentsCount'])
         index += 1
 
+    print("Writing HTTP data to Excel")
+
     sheet2 = workbook.add_worksheet("HTTP")
 
     sheet2.write(0, 0, 'HTTP')
     sheet2.write(0, 1, 'Request Count')
     sheet2.write(0, 2, 'Component Count')
+    sheet2.write(0, 3, 'Name')
 
     index = 1
     for http in data[1]:
         sheet2.write(index, 0, http['label'])
         sheet2.write(index, 1, http['value'])
         sheet2.write(index, 2, http['componentsCount'])
+        sheet2.write(index, 3, http['name'])
         index += 1
+
+    print("Writing SMB data to Excel")
 
     sheet3 = workbook.add_worksheet("SMB")
 
@@ -145,9 +186,11 @@ def get_security_insights(center_token, center_ip):
         sheet3.write(index, 2, smb['componentsCount'])
         index += 1
 
+    print("Writing External Communication data to Excel")
+    sheet4 = workbook.add_worksheet("External Communication")
+    index = 1
+
     if len(data[3]["devices"]) > 0 or len(data[3]["components"]) > 0:
-        sheet4 = workbook.add_worksheet("External Communication")
-        index = 1
 
         if len(data[3]['devices']) > 0:
             sheet4.write(0, 0, 'Device')
